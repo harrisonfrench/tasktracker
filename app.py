@@ -46,13 +46,21 @@ def create_app(config_class=Config):
     
     @app.route('/')
     def index():
-        if current_user.is_authenticated:
-            return redirect(url_for('dashboard.index'))
-        return render_template('landing.html')
+        try:
+            if current_user.is_authenticated:
+                return redirect(url_for('dashboard.index'))
+            return render_template('landing.html')
+        except Exception as e:
+            print(f"Error in index route: {e}")
+            return f"App is running! Error: {str(e)}", 200
     
     @app.route('/health')
     def health():
-        return {'status': 'healthy', 'message': 'Task Tracker Pro X is running'}
+        return {'status': 'healthy', 'message': 'Task Tracker Pro X is running'}, 200
+    
+    @app.route('/test')
+    def test():
+        return "✅ Test route working!", 200
     
     @app.context_processor
     def inject_user():
@@ -71,15 +79,22 @@ def create_app(config_class=Config):
     return app
 
 # Create the Flask app
-app = create_app()
+try:
+    app = create_app()
+    print("✅ Flask app created successfully!")
+except Exception as e:
+    print(f"❌ Failed to create Flask app: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 # Initialize database on import (for production deployment)
-with app.app_context():
-    try:
+try:
+    with app.app_context():
         db.create_all()
         print("✅ Database initialized successfully!")
-    except Exception as e:
-        print(f"⚠️ Database initialization warning: {e}")
+except Exception as e:
+    print(f"⚠️ Database initialization warning: {e}")
 
 if __name__ == '__main__':
     # Use environment variables for production
