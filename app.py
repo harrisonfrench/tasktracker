@@ -73,14 +73,15 @@ def create_app(config_class=Config):
 # Create the Flask app
 app = create_app()
 
+# Initialize database on import (for production deployment)
+with app.app_context():
+    try:
+        db.create_all()
+        print("✅ Database initialized successfully!")
+    except Exception as e:
+        print(f"⚠️ Database initialization warning: {e}")
+
 if __name__ == '__main__':
-    with app.app_context():
-        try:
-            db.create_all()
-            print("✅ Database initialized successfully!")
-        except Exception as e:
-            print(f"⚠️ Database initialization warning: {e}")
-    
     # Use environment variables for production
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV', 'production') != 'production'
