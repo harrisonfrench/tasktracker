@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Task Tracker Pro X{% endblock %}</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    {% if current_user.is_authenticated %}
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="{{ url_for('dashboard.index') }}" class="navbar-brand">
+                <i class="fas fa-rocket"></i> Task Tracker Pro X
+            </a>
+            
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('tasks.list_tasks') }}" class="nav-link {% if request.endpoint and 'tasks' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-tasks"></i> Tasks
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('projects.list_projects') }}" class="nav-link {% if request.endpoint and 'projects' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-folder"></i> Projects
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('calendar.view') }}" class="nav-link {% if request.endpoint and 'calendar' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-calendar-alt"></i> Calendar
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <div class="user-menu">
+                        <button class="nav-link" onclick="toggleUserMenu()">
+                            <i class="fas fa-user"></i> {{ current_user.full_name }}
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="user-dropdown" id="userDropdown">
+                            <a href="{{ url_for('auth.profile') }}" class="dropdown-item">
+                                <i class="fas fa-user-cog"></i> Profile
+                            </a>
+                            <a href="{{ url_for('auth.logout') }}" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible">
+                        {{ message }}
+                        <button type="button" class="btn-close" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-4">
+        <div class="container">
+            <div class="text-center text-muted p-3">
+                <p>&copy; 2025 Task Tracker Pro X. Made with ❤️ for productivity.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
+    {% block extra_js %}{% endblock %}
+
+    <style>
+        /* Additional component styles */
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            z-index: 1000;
+            display: none;
+            margin-top: var(--spacing-sm);
+        }
+        
+        .user-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .dropdown-item {
+            display: block;
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .dropdown-item:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        .dropdown-item i {
+            margin-right: var(--spacing-sm);
+            width: 1rem;
+        }
+        
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+            margin-left: auto;
+            padding: 0;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-close:hover {
+            opacity: 1;
+        }
+        
+        .alert-dismissible {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .main-content {
+            min-height: calc(100vh - 200px);
+            padding: var(--spacing-lg) 0;
+        }
+        
+        .footer {
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block title %}Create Project - Task Tracker Pro X{% endblock %}
+
+{% block head %}
+<style>
+    .create-container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    
+    .page-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+    
+    .breadcrumb-nav {
+        background: none;
+        padding: 0;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .breadcrumb {
+        background: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .breadcrumb-item {
+        color: var(--text-secondary);
+    }
+    
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    
+    .breadcrumb-item a:hover {
+        color: var(--primary-dark);
+    }
+    
+    .breadcrumb-item.active {
+        color: var(--text-primary);
+    }
+    
+    .breadcrumb-item + .breadcrumb-item::before {
+        content: '/';
+        margin-right: 0.5rem;
+        color: var(--text-muted);
+    }
+    
+    .project-form {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--border-color);
+    }
+    
+    .form-group {
+        margin-bottom: 2rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-label.required::after {
+        content: '*';
+        color: var(--error-color);
+        margin-left: 0.25rem;
+    }
+    
+    .form-input, .form-textarea {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 1rem;
+        color: var(--text-primary);
+        background: var(--background);
+        transition: all 0.2s ease;
+        font-family: inherit;
+    }
+    
+    .form-input:focus, .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(0, 129, 204, 0.1);
+    }
+    
+    .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .color-section {
+        background: var(--background-alt);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .color-section-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .color-picker {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .color-input {
+        width: 60px;
+        height: 40px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        background: none;
+    }
+    
+    .color-presets {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .color-preset {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .color-preset:hover {
+        transform: scale(1.1);
+        border-color: var(--text-primary);
+    }
+    
+    .color-preset.active {
+        transform: scale(1.1);
+        border-color: var(--primary-color);
+    }
+    
+    .color-preset.active::after {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .btn {
+        padding: 0.875rem 2rem;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: center;
+        min-width: 140px;
+    }
+    
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 129, 204, 0.3);
+    }
+    
+    .btn-secondary {
+        background: var(--background-alt);
+        color: var(--text-primary);
+        border: 2px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+        background: var(--background-dark);
+    }
+    
+    @media (max-width: 768px) {
+        .create-container {
+            padding: 1rem;
+        }
+        
+        .project-form {
+            padding: 1.5rem;
+        }
+        
+        .color-presets {
+            grid-template-columns: repeat(6, 1fr);
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <nav class="breadcrumb-nav">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('projects.list_projects') }}">Projects</a></li>
+                <li class="breadcrumb-item active">Create Project</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">Create New Project</h1>
+        <p class="page-subtitle">Organize your tasks into a structured project</p>
+    </div>
+    
+    <!-- Project Form -->
+    <form class="project-form" method="POST" id="projectForm">
+        <!-- Project Name -->
+        <div class="form-group">
+            <label for="name" class="form-label required">Project Name</label>
+            <input type="text" id="name" name="name" class="form-input" required 
+                   placeholder="Enter your project name">
+        </div>
+        
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description" class="form-label">Description</label>
+            <textarea id="description" name="description" class="form-textarea" 
+                      placeholder="Describe what this project is about..."></textarea>
+        </div>
+        
+        <!-- Color Selection -->
+        <div class="form-group">
+            <div class="color-section">
+                <div class="color-section-title">
+                    <i class="fas fa-palette"></i> Project Color
+                </div>
+                
+                <div class="color-picker">
+                    <input type="color" id="color_custom" name="color" class="color-input" value="#0081cc">
+                    <span>Or choose from presets:</span>
+                </div>
+                
+                <div class="color-presets">
+                    <div class="color-preset active" style="background: #0081cc" onclick="selectProjectColor('#0081cc')" data-color="#0081cc"></div>
+                    <div class="color-preset" style="background: #28a745" onclick="selectProjectColor('#28a745')" data-color="#28a745"></div>
+                    <div class="color-preset" style="background: #dc3545" onclick="selectProjectColor('#dc3545')" data-color="#dc3545"></div>
+                    <div class="color-preset" style="background: #ffc107" onclick="selectProjectColor('#ffc107')" data-color="#ffc107"></div>
+                    <div class="color-preset" style="background: #6f42c1" onclick="selectProjectColor('#6f42c1')" data-color="#6f42c1"></div>
+                    <div class="color-preset" style="background: #20c997" onclick="selectProjectColor('#20c997')" data-color="#20c997"></div>
+                    <div class="color-preset" style="background: #fd7e14" onclick="selectProjectColor('#fd7e14')" data-color="#fd7e14"></div>
+                    <div class="color-preset" style="background: #2c2d2e" onclick="selectProjectColor('#2c2d2e')" data-color="#2c2d2e"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <a href="{{ url_for('projects.list_projects') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Project
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Color selection for projects
+function selectProjectColor(color) {
+    document.getElementById('color_custom').value = color;
+    
+    // Update active state
+    document.querySelectorAll('.color-preset').forEach(preset => {
+        preset.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+// Custom color input handler
+document.getElementById('color_custom').addEventListener('change', function() {
+    // Remove active state from all presets
+    document.querySelectorAll('.color-preset').forEach(preset => {
+        preset.classList.remove('active');
+    });
+});
+
+// Form validation and submission
+document.getElementById('projectForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    
+    if (!name) {
+        e.preventDefault();
+        showNotification('Please enter a project name', 'error');
+        return false;
+    }
+    
+    // Show loading state
+    const submitBtn = this.querySelector('.btn-primary');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    submitBtn.disabled = true;
+    
+    // Allow form to submit normally
+    return true;
+});
+
+// Auto-resize textarea
+document.getElementById('description').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Set first color preset as active
+    const firstPreset = document.querySelector('.color-preset');
+    if (firstPreset) {
+        firstPreset.classList.add('active');
+    }
+});
+
+// Notification function (simple implementation)
+function showNotification(message, type) {
+    // Simple alert for now - you can replace with a proper notification system
+    if (type === 'error') {
+        alert('Error: ' + message);
+    } else {
+        alert(message);
+    }
+}
+</script>
+{% endblock %}

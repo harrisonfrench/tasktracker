@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+
+{% block title %}Projects - Task Tracker Pro X{% endblock %}
+
+{% block head %}
+<style>
+    .projects-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+    
+    .project-filters {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+    }
+    
+    .filter-group {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .filter-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .filter-item label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+    
+    .filter-select {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--background);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        min-width: 120px;
+    }
+    
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 24px;
+    }
+    
+    .project-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 24px;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        text-decoration: none;
+        display: block;
+    }
+    
+    .project-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 6px;
+        height: 100%;
+        background: var(--primary-color);
+        transition: width 0.3s ease;
+    }
+    
+    .project-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+        text-decoration: none;
+    }
+    
+    .project-card:hover::before {
+        width: 12px;
+    }
+    
+    .project-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+        gap: 16px;
+    }
+    
+    .project-color {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .project-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .project-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+    
+    .project-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 16px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .project-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 12px;
+        background: rgba(52, 152, 219, 0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(52, 152, 219, 0.1);
+    }
+    
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 4px;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+    
+    .project-progress {
+        margin-bottom: 16px;
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .progress-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+    
+    .progress-percentage {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: rgba(52, 152, 219, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), #2980b9);
+        border-radius: 3px;
+        transition: width 0.5s ease;
+    }
+    
+    .project-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    
+    .project-actions .btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        border-radius: 6px;
+    }
+    
+    .archived-badge {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: rgba(149, 165, 166, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .project-card.archived {
+        opacity: 0.7;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+        grid-column: 1 / -1;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .view-toggle {
+        display: flex;
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 4px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .view-toggle button {
+        padding: 8px 12px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .view-toggle button.active {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .projects-list {
+        display: none;
+    }
+    
+    .projects-list.active {
+        display: block;
+    }
+    
+    .project-list-item {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        text-decoration: none;
+    }
+    
+    .project-list-item:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateX(4px);
+        text-decoration: none;
+    }
+    
+    .project-list-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .project-list-name {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+    
+    .project-list-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .project-list-stats {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    
+    .project-list-stat {
+        text-align: center;
+    }
+    
+    .project-list-stat-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .project-list-stat-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+    }
+    
+    @media (max-width: 768px) {
+        .projects-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: stretch;
+        }
+        
+        .filter-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .filter-item {
+            width: 100%;
+        }
+        
+        .filter-select {
+            width: 100%;
+        }
+        
+        .projects-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .project-list-item {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+        }
+        
+        .project-list-stats {
+            justify-content: space-around;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="projects-header">
+        <div>
+            <h1><i class="fas fa-folder"></i> My Projects</h1>
+            <p class="text-secondary">Organize and manage your project portfolios</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="view-toggle">
+                <button class="grid-view active" onclick="switchView('grid')">
+                    <i class="fas fa-th"></i>
+                </button>
+                <button class="list-view" onclick="switchView('list')">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            <a href="{{ url_for('projects.create_project') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Project
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <form class="project-filters" method="GET">
+        <div class="filter-group">
+            <div class="filter-item">
+                <label for="status">Status</label>
+                <select name="status" id="status" class="filter-select" onchange="this.form.submit()">
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Projects</option>
+                    <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>Archived Projects</option>
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Projects</option>
+                </select>
+            </div>
+            
+            <div class="filter-item">
+                <label for="sort">Sort By</label>
+                <select name="sort" id="sort" class="filter-select" onchange="this.form.submit()">
+                    <option value="created" {% if sort_by == 'created' %}selected{% endif %}>Created Date</option>
+                    <option value="updated" {% if sort_by == 'updated' %}selected{% endif %}>Last Updated</option>
+                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                </select>
+            </div>
+        </div>
+    </form>
+    
+    <!-- Projects Grid View -->
+    <div class="projects-grid" id="gridView">
+        {% if projects.items %}
+            {% for project in projects.items %}
+            <a href="{{ url_for('projects.view_project', id=project.id) }}" class="project-card {% if project.is_archived %}archived{% endif %}">
+                {% if project.is_archived %}
+                <div class="archived-badge">Archived</div>
+                {% endif %}
+                
+                <div class="project-header">
+                    <div class="project-color" style="background-color: {{ project.color }}">
+                        {{ project.name[0].upper() }}
+                    </div>
+                    <div class="project-info">
+                        <h3 class="project-name">{{ project.name }}</h3>
+                    </div>
+                </div>
+                
+                {% if project.description %}
+                <p class="project-description">{{ project.description }}</p>
+                {% endif %}
+                
+                <div class="project-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ project.active_tasks_count }}</div>
+                        <div class="stat-label">Active Tasks</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ project.tasks.count() }}</div>
+                        <div class="stat-label">Total Tasks</div>
+                    </div>
+                </div>
+                
+                <div class="project-progress">
+                    <div class="progress-header">
+                        <span class="progress-label">Completion</span>
+                        <span class="progress-percentage">{{ project.completion_percentage }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ project.completion_percentage }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="project-actions">
+                    <a href="{{ url_for('projects.edit_project', id=project.id) }}" 
+                       class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    {% if project.is_archived %}
+                    <button class="btn btn-sm btn-outline-success" 
+                            onclick="event.stopPropagation(); restoreProject({{ project.id }})">
+                        <i class="fas fa-undo"></i> Restore
+                    </button>
+                    {% else %}
+                    <button class="btn btn-sm btn-outline-warning" 
+                            onclick="event.stopPropagation(); archiveProject({{ project.id }})">
+                        <i class="fas fa-archive"></i> Archive
+                    </button>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>No projects found</h3>
+            <p>{% if status_filter != 'active' %}
+                Try adjusting your filters or 
+            {% endif %}
+            <a href="{{ url_for('projects.create_project') }}">create your first project</a> to get started.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Projects List View -->
+    <div class="projects-list" id="listView">
+        {% if projects.items %}
+            {% for project in projects.items %}
+            <a href="{{ url_for('projects.view_project', id=project.id) }}" class="project-list-item {% if project.is_archived %}archived{% endif %}">
+                <div class="project-color" style="background-color: {{ project.color }}">
+                    {{ project.name[0].upper() }}
+                </div>
+                <div class="project-list-info">
+                    <h3 class="project-list-name">
+                        {{ project.name }}
+                        {% if project.is_archived %}
+                        <span class="badge bg-secondary ms-2">Archived</span>
+                        {% endif %}
+                    </h3>
+                    {% if project.description %}
+                    <p class="project-list-description">{{ project.description }}</p>
+                    {% endif %}
+                </div>
+                <div class="project-list-stats">
+                    <div class="project-list-stat">
+                        <div class="project-list-stat-value">{{ project.active_tasks_count }}</div>
+                        <div class="project-list-stat-label">Active</div>
+                    </div>
+                    <div class="project-list-stat">
+                        <div class="project-list-stat-value">{{ project.tasks.count() }}</div>
+                        <div class="project-list-stat-label">Total</div>
+                    </div>
+                    <div class="project-list-stat">
+                        <div class="project-list-stat-value">{{ project.completion_percentage }}%</div>
+                        <div class="project-list-stat-label">Complete</div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>No projects found</h3>
+            <p>{% if status_filter != 'active' %}
+                Try adjusting your filters or 
+            {% endif %}
+            <a href="{{ url_for('projects.create_project') }}">create your first project</a> to get started.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if projects.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if projects.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('projects.list_projects', page=projects.prev_num, status=status_filter, sort=sort_by) }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in projects.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != projects.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('projects.list_projects', page=page_num, status=status_filter, sort=sort_by) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if projects.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('projects.list_projects', page=projects.next_num, status=status_filter, sort=sort_by) }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<script>
+function switchView(view) {
+    const gridView = document.getElementById('gridView');
+    const listView = document.getElementById('listView');
+    const gridBtn = document.querySelector('.grid-view');
+    const listBtn = document.querySelector('.list-view');
+    
+    if (view === 'grid') {
+        gridView.style.display = 'grid';
+        listView.style.display = 'none';
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        localStorage.setItem('projectsView', 'grid');
+    } else {
+        gridView.style.display = 'none';
+        listView.style.display = 'block';
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+        localStorage.setItem('projectsView', 'list');
+    }
+}
+
+// Restore saved view preference
+document.addEventListener('DOMContentLoaded', function() {
+    const savedView = localStorage.getItem('projectsView');
+    if (savedView === 'list') {
+        switchView('list');
+    }
+});
+
+async function archiveProject(projectId) {
+    if (!confirm('Are you sure you want to archive this project?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/projects/${projectId}/archive`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            showNotification('Project archived successfully!', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            const error = await response.json();
+            showNotification(error.error || 'Failed to archive project', 'error');
+        }
+    } catch (error) {
+        showNotification('Failed to archive project', 'error');
+    }
+}
+
+async function restoreProject(projectId) {
+    try {
+        const response = await fetch(`/projects/${projectId}/restore`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            showNotification('Project restored successfully!', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            const error = await response.json();
+            showNotification(error.error || 'Failed to restore project', 'error');
+        }
+    } catch (error) {
+        showNotification('Failed to restore project', 'error');
+    }
+}
+</script>
+{% endblock %}

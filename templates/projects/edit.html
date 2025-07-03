@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Project - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-edit text-primary me-2"></i>
+                    Edit Project
+                </h1>
+                <p class="text-muted mb-0">Update project details and settings</p>
+            </div>
+            <div class="page-actions">
+                <a href="{{ url_for('projects.view_project', id=project.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-eye me-1"></i>View Project
+                </a>
+                <a href="{{ url_for('projects.list_projects') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Projects
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        Project Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="editProjectForm" method="POST" action="{{ url_for('projects.edit_project', id=project.id) }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Project Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ project.name }}" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="planning" {{ 'selected' if project.status == 'planning' }}>Planning</option>
+                                        <option value="active" {{ 'selected' if project.status == 'active' }}>Active</option>
+                                        <option value="on_hold" {{ 'selected' if project.status == 'on_hold' }}>On Hold</option>
+                                        <option value="completed" {{ 'selected' if project.status == 'completed' }}>Completed</option>
+                                        <option value="cancelled" {{ 'selected' if project.status == 'cancelled' }}>Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                                           value="{{ project.start_date.strftime('%Y-%m-%d') if project.start_date }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                                           value="{{ project.end_date.strftime('%Y-%m-%d') if project.end_date }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" 
+                                      placeholder="Describe your project...">{{ project.description or '' }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="budget" class="form-label">Budget</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="budget" name="budget" 
+                                               step="0.01" min="0" value="{{ project.budget or '' }}" placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">Priority</label>
+                                    <select class="form-select" id="priority" name="priority">
+                                        <option value="low" {{ 'selected' if project.priority == 'low' }}>Low</option>
+                                        <option value="medium" {{ 'selected' if project.priority == 'medium' }}>Medium</option>
+                                        <option value="high" {{ 'selected' if project.priority == 'high' }}>High</option>
+                                        <option value="urgent" {{ 'selected' if project.priority == 'urgent' }}>Urgent</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="fas fa-trash me-1"></i>Delete Project
+                            </button>
+                            <div>
+                                <a href="{{ url_for('projects.view_project', id=project.id) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Project Statistics -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-bar text-primary me-2"></i>
+                        Project Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="stat-card">
+                                <div class="stat-number text-primary">{{ total_tasks }}</div>
+                                <div class="stat-label">Total Tasks</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-card">
+                                <div class="stat-number text-success">
+                                    {{ project.tasks|selectattr('status', 'equalto', 'completed')|list|length }}
+                                </div>
+                                <div class="stat-label">Completed</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 8px;">
+                        {% set completed_tasks = project.tasks|selectattr('status', 'equalto', 'completed')|list|length %}
+                        {% set progress = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0 %}
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ progress }}%" 
+                             aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                    <small class="text-muted">{{ "%.1f"|format(progress) }}% Complete</small>
+                </div>
+            </div>
+
+            <!-- Recent Tasks -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-tasks text-primary me-2"></i>
+                        Recent Tasks
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if project.tasks %}
+                        {% for task in project.tasks[:5] %}
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="status-indicator status-{{ task.status }} me-2"></div>
+                            <div class="flex-grow-1">
+                                <a href="{{ url_for('tasks.view_task', id=task.id) }}" class="text-decoration-none">
+                                    <small class="fw-medium">{{ task.title }}</small>
+                                </a>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    {% if task.due_date %}
+                                        Due: {{ task.due_date.strftime('%m/%d/%Y') }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if total_tasks > 5 %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('tasks.list_tasks', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                                View All Tasks
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted text-center mb-0">No tasks yet</p>
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('tasks.create_task', project_id=project.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus me-1"></i>Create Task
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Delete Project
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the project "<strong>{{ project.name }}</strong>"?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All tasks associated with this project will also be deleted.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('projects.delete_project', id=project.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Delete Project
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editProjectForm');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+        submitBtn.disabled = true;
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Project updated successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = data.redirect || '{{ url_for("projects.view_project", id=project.id) }}';
+                }, 1000);
+            } else {
+                showNotification(data.message || 'Error updating project', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error updating project', 'error');
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    });
+
+    // Form validation
+    const nameInput = document.getElementById('name');
+    nameInput.addEventListener('blur', function() {
+        validateField(this, 'Project name is required');
+    });
+
+    // Date validation
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
+    
+    startDate.addEventListener('change', function() {
+        if (endDate.value && this.value > endDate.value) {
+            showNotification('Start date cannot be after end date', 'warning');
+        }
+    });
+    
+    endDate.addEventListener('change', function() {
+        if (startDate.value && this.value < startDate.value) {
+            showNotification('End date cannot be before start date', 'warning');
+        }
+    });
+});
+
+function validateField(field, message) {
+    const isValid = field.value.trim() !== '';
+    
+    if (!isValid) {
+        field.classList.add('is-invalid');
+        field.nextElementSibling.textContent = message;
+    } else {
+        field.classList.remove('is-invalid');
+        field.nextElementSibling.textContent = '';
+    }
+    
+    return isValid;
+}
+
+function showNotification(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

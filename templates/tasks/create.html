@@ -1,0 +1,718 @@
+{% extends "base.html" %}
+
+{% block title %}Create Task - Task Tracker Pro X{% endblock %}
+
+{% block head %}
+<style>
+    .create-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    
+    .page-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+    
+    .breadcrumb-nav {
+        background: none;
+        padding: 0;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .breadcrumb {
+        background: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .breadcrumb-item {
+        color: var(--text-secondary);
+    }
+    
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    
+    .breadcrumb-item a:hover {
+        color: var(--primary-dark);
+    }
+    
+    .breadcrumb-item.active {
+        color: var(--text-primary);
+    }
+    
+    .breadcrumb-item + .breadcrumb-item::before {
+        content: '/';
+        margin-right: 0.5rem;
+        color: var(--text-muted);
+    }
+    
+    .task-form {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--border-color);
+    }
+    
+    .form-group {
+        margin-bottom: 2rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-label.required::after {
+        content: '*';
+        color: var(--error-color);
+        margin-left: 0.25rem;
+    }
+    
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 1rem;
+        color: var(--text-primary);
+        background: var(--background);
+        transition: all 0.2s ease;
+        font-family: inherit;
+    }
+    
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .form-row.single {
+        grid-template-columns: 1fr;
+    }
+    
+    .priority-selector {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    
+    .priority-option {
+        position: relative;
+    }
+    
+    .priority-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+    }
+    
+    .priority-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem 0.5rem;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        background: var(--background);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+    }
+    
+    .priority-option input[type="radio"]:checked + .priority-label {
+        border-color: var(--primary-color);
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .priority-option.low input[type="radio"]:checked + .priority-label {
+        border-color: var(--success-color);
+        background: var(--success-color);
+    }
+    
+    .priority-option.medium input[type="radio"]:checked + .priority-label {
+        border-color: var(--warning-color);
+        background: var(--warning-color);
+    }
+    
+    .priority-option.high input[type="radio"]:checked + .priority-label {
+        border-color: var(--error-color);
+        background: var(--error-color);
+    }
+    
+    .priority-icon {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .priority-text {
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .btn {
+        padding: 0.875rem 2rem;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: center;
+        min-width: 140px;
+    }
+    
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    }
+    
+    .btn-secondary {
+        background: var(--background-alt);
+        color: var(--text-primary);
+        border: 2px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+        background: var(--background-dark);
+    }
+    
+    /* New Project Inline Form */
+    .new-project-toggle {
+        background: none;
+        border: 2px dashed var(--border-color);
+        color: var(--primary-color);
+        padding: 1rem;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        width: 100%;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+    
+    .new-project-toggle:hover {
+        border-color: var(--primary-color);
+        background: rgba(52, 152, 219, 0.05);
+    }
+    
+    .new-project-form {
+        margin-top: 1rem;
+        padding: 1.5rem;
+        background: var(--background-alt);
+        border-radius: 10px;
+        border: 2px solid var(--primary-color);
+        display: none;
+    }
+    
+    .new-project-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .new-project-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .close-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .close-btn:hover {
+        background: var(--background);
+        color: var(--text-primary);
+    }
+    
+    .color-picker {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .color-input {
+        width: 50px;
+        height: 40px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        background: none;
+    }
+    
+    .color-presets {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .color-preset {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .color-preset:hover {
+        transform: scale(1.1);
+        border-color: var(--text-primary);
+    }
+    
+    .color-preset.active {
+        transform: scale(1.1);
+        border-color: var(--primary-color);
+    }
+    
+    .new-project-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+    }
+    
+    .btn-sm {
+        padding: 0.625rem 1.5rem;
+        font-size: 0.875rem;
+        min-width: 100px;
+    }
+    
+    @media (max-width: 768px) {
+        .create-container {
+            padding: 1rem;
+        }
+        
+        .task-form {
+            padding: 1.5rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .priority-selector {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .new-project-form.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <nav class="breadcrumb-nav">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('tasks.list_tasks') }}">Tasks</a></li>
+                <li class="breadcrumb-item active">Create Task</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">Create New Task</h1>
+        <p class="page-subtitle">Add a new task to boost your productivity</p>
+    </div>
+    
+    <!-- Task Form -->
+    <form class="task-form" method="POST" id="taskForm">
+        <!-- Task Title -->
+        <div class="form-group">
+            <label for="title" class="form-label required">Task Title</label>
+            <input type="text" id="title" name="title" class="form-input" required 
+                   placeholder="What needs to be done?">
+        </div>
+        
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description" class="form-label">Description</label>
+            <textarea id="description" name="description" class="form-textarea" 
+                      placeholder="Add any additional details or context..."></textarea>
+        </div>
+        
+        <!-- Project and Due Date Row -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="project_id" class="form-label required">Project</label>
+                <select id="project_id" name="project_id" class="form-select" required>
+                    <option value="">Choose a project</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="new-project-toggle" onclick="toggleNewProject()">
+                    <i class="fas fa-plus"></i> Create New Project
+                </button>
+                
+                <!-- New Project Form -->
+                <div id="newProjectForm" class="new-project-form">
+                    <div class="new-project-header">
+                        <h3 class="new-project-title">
+                            <i class="fas fa-folder-plus"></i> New Project
+                        </h3>
+                        <button type="button" class="close-btn" onclick="cancelNewProject()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new_project_name" class="form-label required">Project Name</label>
+                        <input type="text" id="new_project_name" name="new_project_name" 
+                               class="form-input" placeholder="Enter project name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new_project_color" class="form-label">Color</label>
+                        <div class="color-picker">
+                            <input type="color" id="new_project_color" name="new_project_color" 
+                                   class="color-input" value="#0081cc">
+                            <div class="color-presets">
+                                <div class="color-preset" style="background: #0081cc" onclick="selectColor('#0081cc')"></div>
+                                <div class="color-preset" style="background: #28a745" onclick="selectColor('#28a745')"></div>
+                                <div class="color-preset" style="background: #dc3545" onclick="selectColor('#dc3545')"></div>
+                                <div class="color-preset" style="background: #ffc107" onclick="selectColor('#ffc107')"></div>
+                                <div class="color-preset" style="background: #6f42c1" onclick="selectColor('#6f42c1')"></div>
+                                <div class="color-preset" style="background: #20c997" onclick="selectColor('#20c997')"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new_project_description" class="form-label">Description</label>
+                        <textarea id="new_project_description" name="new_project_description" 
+                                  class="form-textarea" rows="2" 
+                                  placeholder="Brief project description..."></textarea>
+                    </div>
+                    
+                    <div class="new-project-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelNewProject()">
+                            Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="createNewProject()">
+                            <i class="fas fa-plus"></i> Create
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="due_date" class="form-label">Due Date</label>
+                <input type="datetime-local" id="due_date" name="due_date" class="form-input">
+            </div>
+        </div>
+        
+        <!-- Priority Selection -->
+        <div class="form-group">
+            <label class="form-label">Priority Level</label>
+            <div class="priority-selector">
+                <div class="priority-option low">
+                    <input type="radio" id="priority_low" name="priority" value="low" checked>
+                    <label for="priority_low" class="priority-label">
+                        <div class="priority-icon">🟢</div>
+                        <div class="priority-text">Low</div>
+                    </label>
+                </div>
+                <div class="priority-option medium">
+                    <input type="radio" id="priority_medium" name="priority" value="medium">
+                    <label for="priority_medium" class="priority-label">
+                        <div class="priority-icon">🟡</div>
+                        <div class="priority-text">Medium</div>
+                    </label>
+                </div>
+                <div class="priority-option high">
+                    <input type="radio" id="priority_high" name="priority" value="high">
+                    <label for="priority_high" class="priority-label">
+                        <div class="priority-icon">🟠</div>
+                        <div class="priority-text">High</div>
+                    </label>
+                </div>
+                <div class="priority-option urgent">
+                    <input type="radio" id="priority_urgent" name="priority" value="urgent">
+                    <label for="priority_urgent" class="priority-label">
+                        <div class="priority-icon">🔴</div>
+                        <div class="priority-text">Urgent</div>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Points Value -->
+        <div class="form-group">
+            <label for="points_value" class="form-label">Points Value</label>
+            <input type="number" id="points_value" name="points_value" class="form-input" 
+                   value="10" min="1" max="100" placeholder="10">
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <a href="{{ url_for('tasks.list_tasks') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Task
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle new project form
+function toggleNewProject() {
+    const form = document.getElementById('newProjectForm');
+    const button = document.querySelector('.new-project-toggle');
+    
+    if (form.style.display === 'none' || !form.style.display) {
+        form.style.display = 'block';
+        form.classList.add('show');
+        button.style.display = 'none';
+    }
+}
+
+function cancelNewProject() {
+    const form = document.getElementById('newProjectForm');
+    const button = document.querySelector('.new-project-toggle');
+    
+    form.style.display = 'none';
+    form.classList.remove('show');
+    button.style.display = 'block';
+    
+    // Clear form
+    document.getElementById('new_project_name').value = '';
+    document.getElementById('new_project_description').value = '';
+    document.getElementById('new_project_color').value = '#0081cc';
+    
+    // Reset color presets
+    document.querySelectorAll('.color-preset').forEach(preset => {
+        preset.classList.remove('active');
+    });
+    document.querySelector('.color-preset').classList.add('active');
+}
+
+// Color selection
+function selectColor(color) {
+    document.getElementById('new_project_color').value = color;
+    
+    // Update active state
+    document.querySelectorAll('.color-preset').forEach(preset => {
+        preset.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+// Create new project
+async function createNewProject() {
+    const name = document.getElementById('new_project_name').value.trim();
+    const description = document.getElementById('new_project_description').value.trim();
+    const color = document.getElementById('new_project_color').value;
+    
+    if (!name) {
+        showNotification('Please enter a project name', 'error');
+        return;
+    }
+    
+    const createBtn = event.target;
+    const originalText = createBtn.innerHTML;
+    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    createBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/projects/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                description: description,
+                color: color
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Add new project to the select dropdown
+            const projectSelect = document.getElementById('project_id');
+            const newOption = new Option(name, result.project.id);
+            projectSelect.appendChild(newOption);
+            
+            // Select the new project
+            projectSelect.value = result.project.id;
+            
+            // Hide the new project form
+            cancelNewProject();
+            
+            showNotification('Project created successfully!', 'success');
+        } else {
+            throw new Error(result.error || 'Failed to create project');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification(error.message || 'Failed to create project', 'error');
+    } finally {
+        createBtn.innerHTML = originalText;
+        createBtn.disabled = false;
+    }
+}
+
+// Form validation and submission
+document.getElementById('taskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const title = document.getElementById('title').value.trim();
+    const projectId = document.getElementById('project_id').value;
+    
+    if (!title) {
+        showNotification('Please enter a task title', 'error');
+        return;
+    }
+    
+    if (!projectId) {
+        showNotification('Please select a project', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = this.querySelector('.btn-primary');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    submitBtn.disabled = true;
+    
+    // Prepare form data
+    const formData = new FormData(this);
+    
+    // Submit form normally (not AJAX for simplicity)
+    this.submit();
+});
+
+// Auto-resize textarea
+document.getElementById('description').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+
+// Set minimum due date to today
+document.addEventListener('DOMContentLoaded', function() {
+    const dueDateInput = document.getElementById('due_date');
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    dueDateInput.min = now.toISOString().slice(0, 16);
+    
+    // Set first color preset as active
+    const firstPreset = document.querySelector('.color-preset');
+    if (firstPreset) {
+        firstPreset.classList.add('active');
+    }
+});
+
+// Notification function (simple implementation)
+function showNotification(message, type) {
+    // Simple alert for now - you can replace with a proper notification system
+    if (type === 'error') {
+        alert('Error: ' + message);
+    } else {
+        alert(message);
+    }
+}
+</script>
+{% endblock %}

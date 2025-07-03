@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found - Task Tracker Pro X{% endblock %}
+
+{% block content %}
+<div class="container-fluid d-flex align-items-center justify-content-center min-vh-100">
+    <div class="text-center">
+        <div class="error-icon mb-4">
+            <i class="fas fa-search text-primary" style="font-size: 8rem; opacity: 0.3;"></i>
+        </div>
+        
+        <h1 class="display-1 fw-bold text-primary mb-3">404</h1>
+        <h2 class="h4 mb-3">Oops! Page Not Found</h2>
+        <p class="text-muted mb-4">
+            The page you're looking for doesn't exist. It might have been moved, deleted, or you entered the wrong URL.
+        </p>
+        
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                <i class="fas fa-home me-2"></i>Go to Dashboard
+            </a>
+            <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Go Back
+            </a>
+        </div>
+        
+        <div class="mt-5">
+            <h5 class="mb-3">Popular Pages</h5>
+            <div class="row justify-content-center">
+                <div class="col-auto">
+                    <a href="{{ url_for('tasks.list_tasks') }}" class="btn btn-link">
+                        <i class="fas fa-tasks me-1"></i>My Tasks
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ url_for('projects.list_projects') }}" class="btn btn-link">
+                        <i class="fas fa-folder me-1"></i>My Projects
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-link">
+                        <i class="fas fa-chart-bar me-1"></i>Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.min-vh-100 {
+    min-height: 100vh;
+}
+
+.error-icon {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+</style>
+{% endblock %}
