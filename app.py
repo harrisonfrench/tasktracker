@@ -1,8 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, flash
 from flask_login import LoginManager, login_required, current_user
-from flask_migrate import Migrate
-from flask_mail import Mail
-from flask_socketio import SocketIO
 import os
 from datetime import datetime
 from dotenv import load_dotenv
@@ -19,9 +16,6 @@ def create_app(config_class=Config):
     
     # Initialize extensions
     db.init_app(app)
-    migrate = Migrate(app, db)
-    mail = Mail(app)
-    socketio = SocketIO(app, cors_allowed_origins="*")
     
     # Flask-Login setup
     login_manager = LoginManager()
@@ -74,15 +68,24 @@ def create_app(config_class=Config):
         db.session.rollback()
         return render_template('errors/500.html'), 500
     
-    return app, socketio
+    return app
 
 # Create the Flask app
-app, socketio = create_app()
+app = create_app()
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
-        print("✅ Database initialized successfully!")
+        try:
+            db.create_all()
+            print("✅ Database initialized successfully!")
+        except Exception as e:
+            print(f"⚠️ Database initialization warning: {e}")
     
-    port = int(os.environ.get('FLASK_RUN_PORT', 8082))
-    socketio.run(app, debug=True, host='0.0.0.0', port=port)
+    # Use environment variables for production
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV', 'production') != 'production'
+    
+    if debug:
+        app.run(debug=True, host='0.0.0.0', port=port)
+    else:
+        app.run(host='0.0.0.0', port=port)
