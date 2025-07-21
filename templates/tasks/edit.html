@@ -342,7 +342,7 @@
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
                 <li class="breadcrumb-item"><a href="{{ url_for('tasks.list_tasks') }}">Tasks</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('tasks.view_task', task_id=task.id) }}">{{ task.title }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('tasks.view_task', id=task.id) }}">{{ task.title }}</a></li>
                 <li class="breadcrumb-item active">Edit</li>
             </ol>
         </nav>
@@ -507,7 +507,7 @@
         
         <!-- Form Actions -->
         <div class="form-actions">
-            <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="btn-cancel">Cancel</a>
+            <a href="{{ url_for('tasks.view_task', id=task.id) }}" class="btn-cancel">Cancel</a>
             <button type="submit" class="btn-save">
                 <i class="fas fa-save"></i> Save Changes
             </button>

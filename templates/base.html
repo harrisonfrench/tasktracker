@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Task Tracker Pro X{% endblock %}</title>
+    <meta name="description" content="{% block description %}Professional task management for modern teams{% endblock %}">
+    <title>{% block title %}Task Tracker Pro{% endblock %}</title>
     
     <!-- Preload critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Modern Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
     
     {% block extra_css %}{% endblock %}
 </head>
@@ -27,170 +28,1133 @@
     <!-- Navigation -->
     {% if current_user.is_authenticated %}
     <nav class="navbar">
-        <div class="container navbar-container">
+        <div class="navbar-container">
+            <!-- Brand -->
             <a href="{{ url_for('dashboard.index') }}" class="navbar-brand">
-                <i class="fas fa-rocket"></i> Task Tracker Pro X
+                <i data-lucide="zap"></i>
+                <span>Task Tracker Pro</span>
             </a>
             
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ url_for('tasks.list_tasks') }}" class="nav-link {% if request.endpoint and 'tasks' in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-tasks"></i> Tasks
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ url_for('projects.list_projects') }}" class="nav-link {% if request.endpoint and 'projects' in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-folder"></i> Projects
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ url_for('calendar.view') }}" class="nav-link {% if request.endpoint and 'calendar' in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-calendar-alt"></i> Calendar
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
-                        <i class="fas fa-moon"></i>
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <div class="user-menu">
-                        <button class="nav-link" onclick="toggleUserMenu()">
-                            <i class="fas fa-user"></i> {{ current_user.full_name }}
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div class="user-dropdown" id="userDropdown">
-                            <a href="{{ url_for('auth.profile') }}" class="dropdown-item">
-                                <i class="fas fa-user-cog"></i> Profile
-                            </a>
-                            <a href="{{ url_for('auth.logout') }}" class="dropdown-item">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </div>
+            <!-- Main Navigation Links -->
+            <div class="navbar-nav">
+                <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('tasks.list_tasks') }}" class="nav-link {% if request.endpoint and 'tasks' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="check-square"></i>
+                    <span>Tasks</span>
+                </a>
+                <a href="{{ url_for('projects.list_projects') }}" class="nav-link {% if request.endpoint and 'projects' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="folder"></i>
+                    <span>Projects</span>
+                </a>
+                <a href="{{ url_for('calendar.view') }}" class="nav-link {% if request.endpoint and 'calendar' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="calendar"></i>
+                    <span>Calendar</span>
+                </a>
+            </div>
+            
+            <!-- Right Side Actions -->
+            <div class="navbar-actions">
+                <!-- Quick Task Button -->
+                <button class="nav-btn nav-btn-primary" onclick="openQuickTaskModal()">
+                    <i data-lucide="plus"></i>
+                    <span class="btn-text">New Task</span>
+                </button>
+                
+                <!-- Notifications -->
+                <button class="nav-btn notification-trigger" onclick="toggleNotifications()">
+                    <i data-lucide="bell"></i>
+                    <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                </button>
+                <div class="notifications-menu" id="notifications-menu" style="display: none;">
+                    <div class="notifications-header">
+                        <h3>Notifications</h3>
+                        <button onclick="markAllNotificationsRead()" class="btn btn-sm">Mark all read</button>
                     </div>
-                </li>
-            </ul>
+                    <div class="notifications-list" id="notifications-list">
+                        <div class="no-notifications">No new notifications</div>
+                    </div>
+                </div>
+                
+                <!-- Theme Toggle -->
+                <button class="nav-btn theme-toggle" onclick="toggleTheme()">
+                    <i data-lucide="moon" id="theme-icon"></i>
+                </button>
+                
+                <!-- Profile Dropdown -->
+                <div class="profile-dropdown">
+                    <button class="nav-btn profile-trigger" onclick="toggleProfileMenu()">
+                        <i data-lucide="user"></i>
+                        <span class="btn-text">Profile</span>
+                        <i data-lucide="chevron-down" class="dropdown-arrow"></i>
+                    </button>
+                    <div class="profile-menu" id="profile-menu" style="display: none;">
+                        <div class="profile-info">
+                            <div class="profile-avatar">
+                                <i data-lucide="user"></i>
+                            </div>
+                            <div class="profile-details">
+                                <div class="profile-name">{{ current_user.username if current_user.username else 'User' }}</div>
+                                <div class="profile-email">{{ current_user.email if current_user.email else 'user@example.com' }}</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('auth.profile') }}" class="dropdown-item">
+                            <i data-lucide="settings"></i>
+                            <span>Account Settings</span>
+                        </a>
+                        <a href="#" class="dropdown-item" onclick="showPreferences()">
+                            <i data-lucide="sliders"></i>
+                            <span>Preferences</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('auth.logout') }}" class="dropdown-item logout-item">
+                            <i data-lucide="log-out"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
     {% endif %}
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container mt-3">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible">
-                        {{ message }}
-                        <button type="button" class="btn-close" onclick="this.parentElement.remove()">×</button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
     <!-- Main Content -->
     <main class="main-content">
-        {% block content %}{% endblock %}
+        <div class="container">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages-container mb-6">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                                <div class="alert-content">
+                                    {% if category == 'success' %}
+                                        <i data-lucide="check-circle"></i>
+                                    {% elif category == 'error' or category == 'danger' %}
+                                        <i data-lucide="alert-circle"></i>
+                                    {% elif category == 'warning' %}
+                                        <i data-lucide="alert-triangle"></i>
+                                    {% else %}
+                                        <i data-lucide="info"></i>
+                                    {% endif %}
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
     <!-- Footer -->
-    <footer class="footer mt-4">
+    {% if current_user.is_authenticated %}
+    <footer class="footer">
         <div class="container">
-            <div class="text-center text-muted p-3">
-                <p>&copy; 2025 Task Tracker Pro X. Made with ❤️ for productivity.</p>
+            <div class="footer-content">
+                <p>&copy; 2025 Task Tracker Pro. Built with ❤️ using Flask.</p>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="#" class="footer-link">Terms</a>
+                    <a href="#" class="footer-link">Support</a>
+                </div>
             </div>
         </div>
     </footer>
+    {% endif %}
 
-    <!-- JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <!-- Enhanced JavaScript -->
+    <script src="{{ url_for('static', filename='js/app-enhanced.js') }}"></script>
     
-    {% block extra_js %}{% endblock %}
+    <!-- Navigation Initialization Script -->
+    <script>
+        // Ensure proper initialization of navigation and icons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide icons
+            if (window.lucide) {
+                try {
+                    lucide.createIcons();
+                    console.log('✅ Lucide icons initialized');
+                } catch (error) {
+                    console.warn('⚠️ Error initializing Lucide icons:', error);
+                }
+            } else {
+                console.warn('⚠️ Lucide not loaded, retrying...');
+                // Retry after a short delay
+                setTimeout(() => {
+                    if (window.lucide) {
+                        lucide.createIcons();
+                        console.log('✅ Lucide icons initialized (retry)');
+                    }
+                }, 500);
+            }
+            
+            // Initialize navigation functionality
+            try {
+                setupGlobalSearch();
+                loadNotifications();
+                console.log('✅ Navigation initialized');
+            } catch (error) {
+                console.warn('⚠️ Navigation initialization error:', error);
+            }
+            
+            // Set up theme
+            const savedTheme = localStorage.getItem('tasktracker-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            const themeIcon = document.getElementById('theme-icon');
+            if (themeIcon) {
+                themeIcon.setAttribute('data-lucide', savedTheme === 'dark' ? 'sun' : 'moon');
+                // Re-initialize icons after theme change
+                if (window.lucide) {
+                    setTimeout(() => lucide.createIcons(), 100);
+                }
+            }
+        });
 
+        // Re-initialize icons on page changes (for SPAs or dynamic content)
+        function reinitializeIcons() {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
+        // Auto-retry mechanism for failed icon loads
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                // Check if any icons failed to load
+                const unloadedIcons = document.querySelectorAll('[data-lucide]:not(svg)');
+                if (unloadedIcons.length > 0) {
+                    console.log('🔄 Retrying icon initialization...');
+                    if (window.lucide) {
+                        lucide.createIcons();
+                    }
+                }
+            }, 1000);
+        });
+    </script>
+    
+    <!-- Global Modal for Quick Actions -->
+    <div id="quick-task-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Quick Task</h2>
+                <button onclick="closeQuickTaskModal()" class="btn btn-ghost btn-sm">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="quick-task-form" onsubmit="submitQuickTask(event)">
+                <div class="form-group">
+                    <label for="quick-task-title">Task Title</label>
+                    <input type="text" id="quick-task-title" name="title" required 
+                           placeholder="What needs to be done?">
+                </div>
+                <div class="form-group">
+                    <label for="quick-task-priority">Priority</label>
+                    <select id="quick-task-priority" name="priority">
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="closeQuickTaskModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Search Results Overlay -->
+    <div id="search-overlay" class="search-overlay" style="display: none;">
+        <div class="search-results">
+            <div class="search-header">
+                <h3>Search Results</h3>
+                <button onclick="closeSearchOverlay()" class="btn btn-ghost btn-sm">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div id="search-results-content" class="search-content">
+                <!-- Dynamic search results -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the enhanced app
+        let taskTrackerApp;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize enhanced features
+            taskTrackerApp = new TaskTrackerPro();
+            
+            // Initialize Lucide icons
+            lucide.createIcons();
+            
+            // Setup quick search
+            setupQuickSearch();
+            
+            // Load notifications
+            loadNotifications();
+        });
+
+        // Quick Task Modal Functions
+        function openQuickTaskModal() {
+            document.getElementById('quick-task-modal').style.display = 'flex';
+            document.getElementById('quick-task-title').focus();
+        }
+
+        function closeQuickTaskModal() {
+            document.getElementById('quick-task-modal').style.display = 'none';
+            document.getElementById('quick-task-form').reset();
+        }
+
+        function submitQuickTask(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            
+            // Show loading state
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating...';
+            submitBtn.disabled = true;
+            
+            fetch('/api/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: formData.get('title'),
+                    priority: formData.get('priority'),
+                    status: 'pending'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Task created successfully!', 'success');
+                    closeQuickTaskModal();
+                    // Refresh dashboard if on dashboard page
+                    if (window.location.pathname === '/dashboard' || window.location.pathname === '/') {
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
+                } else {
+                    showToast('Failed to create task: ' + (data.message || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Failed to create task', 'error');
+            })
+            .finally(() => {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            });
+        }
+
+        // Notification Functions
+        function toggleNotifications() {
+            const menu = document.getElementById('notifications-menu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function loadNotifications() {
+            fetch('/api/notifications')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateNotificationBadge(data.unread_count);
+                        renderNotifications(data.notifications);
+                    }
+                })
+                .catch(error => console.error('Error loading notifications:', error));
+        }
+
+        function updateNotificationBadge(count) {
+            const badge = document.getElementById('notification-count');
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function renderNotifications(notifications) {
+            const list = document.getElementById('notifications-list');
+            if (!notifications || notifications.length === 0) {
+                list.innerHTML = '<div class="no-notifications">No new notifications</div>';
+                return;
+            }
+            
+            list.innerHTML = notifications.map(notification => `
+                <div class="notification-item ${notification.read ? 'read' : 'unread'}" data-id="${notification.id}">
+                    <div class="notification-content">
+                        <div class="notification-title">${notification.title}</div>
+                        <div class="notification-message">${notification.message}</div>
+                        <div class="notification-time">${formatTimeAgo(notification.created_at)}</div>
+                    </div>
+                    ${!notification.read ? '<div class="unread-indicator"></div>' : ''}
+                </div>
+            `).join('');
+        }
+
+        function markAllNotificationsRead() {
+            fetch('/api/notifications/mark-all-read', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadNotifications();
+                }
+            });
+        }
+
+        // Search Functions
+        function setupQuickSearch() {
+            const searchInput = document.getElementById('global-search');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', function(e) {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    closeSearchOverlay();
+                    return;
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    performSearch(query);
+                }, 300);
+            });
+            
+            // Close search on escape
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeSearchOverlay();
+                    e.target.blur();
+                }
+            });
+        }
+
+        function performSearch(query) {
+            fetch(`/api/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSearchResults(data.results);
+                    }
+                })
+                .catch(error => console.error('Search error:', error));
+        }
+
+        function showSearchResults(results) {
+            const overlay = document.getElementById('search-overlay');
+            const content = document.getElementById('search-results-content');
+            
+            if (!results || results.length === 0) {
+                content.innerHTML = '<div class="no-results">No results found</div>';
+            } else {
+                content.innerHTML = results.map(result => `
+                    <div class="search-result-item" onclick="navigateToResult('${result.type}', ${result.id})">
+                        <div class="result-icon">
+                            <i data-lucide="${result.type === 'task' ? 'check-square' : 'folder'}"></i>
+                        </div>
+                        <div class="result-content">
+                            <div class="result-title">${result.title}</div>
+                            <div class="result-type">${result.type}</div>
+                            ${result.description ? `<div class="result-description">${result.description}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            overlay.style.display = 'flex';
+            lucide.createIcons();
+        }
+
+        function closeSearchOverlay() {
+            document.getElementById('search-overlay').style.display = 'none';
+        }
+
+        function navigateToResult(type, id) {
+            const url = type === 'task' ? `/tasks/${id}` : `/projects/${id}`;
+            window.location.href = url;
+        }
+
+        // Toast Notifications
+        function showToast(message, type = 'info', duration = 4000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const icon = type === 'success' ? 'check-circle' : 
+                        type === 'error' ? 'alert-circle' : 
+                        type === 'warning' ? 'alert-triangle' : 'info';
+            
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <i data-lucide="${icon}"></i>
+                    <span>${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="toast-close">
+                    <i data-lucide="x"></i>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            // Auto remove
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100%)';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, duration);
+        }
+
+        // Utility Functions
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Theme Toggle (Enhanced)
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('tasktracker-theme', newTheme);
+            
+            // Update icon
+            if (newTheme === 'dark') {
+                themeIcon.setAttribute('data-lucide', 'sun');
+            } else {
+                themeIcon.setAttribute('data-lucide', 'moon');
+            }
+            lucide.createIcons();
+            
+            showToast(`Switched to ${newTheme} theme`, 'success', 2000);
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('tasktracker-theme') || 'light';
+            const themeIcon = document.getElementById('theme-icon');
+            
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            if (savedTheme === 'dark' && themeIcon) {
+                themeIcon.setAttribute('data-lucide', 'sun');
+                lucide.createIcons();
+            }
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            const notificationsMenu = document.getElementById('notifications-menu');
+            const notificationTrigger = document.querySelector('.notification-trigger');
+            
+            if (!notificationTrigger.contains(e.target) && !notificationsMenu.contains(e.target)) {
+                notificationsMenu.style.display = 'none';
+            }
+        });
+    </script>
+    
     <style>
-        /* Additional component styles */
-        .user-menu {
+        /* Enhanced Navigation Styles */
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+        }
+
+        .quick-search {
+            position: relative;
+            margin-right: var(--space-4);
+        }
+
+        .search-input {
+            width: 300px;
+            padding: var(--space-2) var(--space-2) var(--space-2) var(--space-8);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 0.875rem;
+            transition: all var(--transition);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px var(--primary-100);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: var(--space-2);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            width: 16px;
+            height: 16px;
+        }
+
+        .quick-actions {
+            margin: 0 var(--space-2);
+        }
+
+        /* Notifications Dropdown */
+        .notifications-dropdown {
             position: relative;
         }
-        
-        .user-dropdown {
+
+        .notification-trigger {
+            position: relative;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--danger-500);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            min-width: 18px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .notifications-menu {
             position: absolute;
             top: 100%;
             right: 0;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+            width: 400px;
+            max-height: 500px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
-            min-width: 200px;
             z-index: 1000;
-            display: none;
-            margin-top: var(--spacing-sm);
+            margin-top: var(--space-2);
+            overflow: hidden;
         }
-        
-        .user-dropdown.show {
-            display: block;
-            animation: fadeIn 0.2s ease;
+
+        .notifications-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
         }
-        
-        .dropdown-item {
-            display: block;
-            padding: var(--spacing-sm) var(--spacing-md);
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: all 0.2s ease;
+
+        .notifications-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
         }
-        
-        .dropdown-item:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+
+        .notifications-list {
+            max-height: 400px;
+            overflow-y: auto;
         }
-        
-        .dropdown-item i {
-            margin-right: var(--spacing-sm);
-            width: 1rem;
-        }
-        
-        .btn-close {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
+
+        .notification-item {
+            display: flex;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border);
             cursor: pointer;
-            color: inherit;
-            opacity: 0.7;
-            margin-left: auto;
-            padding: 0;
-            width: 1.5rem;
-            height: 1.5rem;
+            transition: background-color var(--transition);
+            position: relative;
+        }
+
+        .notification-item:hover {
+            background: var(--surface-2);
+        }
+
+        .notification-item.unread {
+            background: var(--primary-50);
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: var(--space-1);
+        }
+
+        .notification-message {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-1);
+        }
+
+        .notification-time {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+
+        .unread-indicator {
+            width: 8px;
+            height: 8px;
+            background: var(--primary-500);
+            border-radius: 50%;
+            margin-left: var(--space-2);
+            margin-top: var(--space-1);
+            flex-shrink: 0;
+        }
+
+        .no-notifications {
+            padding: var(--space-8);
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
         }
-        
-        .btn-close:hover {
-            opacity: 1;
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        
-        .alert-dismissible {
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal form {
+            padding: var(--space-6);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: var(--space-2);
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: var(--space-3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            background: var(--surface);
+            color: var(--text);
+            transition: border-color var(--transition);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px var(--primary-100);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-3);
+            margin-top: var(--space-6);
+        }
+
+        /* Search Overlay */
+        .search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            z-index: 1500;
+            padding-top: 10vh;
+        }
+
+        .search-results {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            width: 90%;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow: hidden;
+        }
+
+        .search-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .search-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .search-content {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background-color var(--transition);
+        }
+
+        .search-result-item:hover {
+            background: var(--surface-2);
+        }
+
+        .result-icon {
+            margin-right: var(--space-3);
+            color: var(--primary-500);
+        }
+
+        .result-content {
+            flex: 1;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: var(--space-1);
+        }
+
+        .result-type {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 500;
+            margin-bottom: var(--space-1);
+        }
+
+        .result-description {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .no-results {
+            padding: var(--space-8);
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: var(--space-6);
+            right: var(--space-6);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            max-width: 400px;
+        }
+
+        .toast {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: var(--space-4);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            transition: all var(--transition);
+            transform: translateX(100%);
+            animation: slideInToast 0.3s ease-out forwards;
+            border-left: 4px solid;
         }
-        
-        .main-content {
-            min-height: calc(100vh - 200px);
-            padding: var(--spacing-lg) 0;
+
+        @keyframes slideInToast {
+            to {
+                transform: translateX(0);
+            }
         }
-        
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity var(--transition);
+            margin-left: var(--space-3);
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        .toast-success {
+            background: #dcfce7;
+            border-left-color: #16a34a;
+            color: #166534;
+        }
+
+        .toast-error {
+            background: #fee2e2;
+            border-left-color: #dc2626;
+            color: #991b1b;
+        }
+
+        .toast-warning {
+            background: #fef3c7;
+            border-left-color: #d97706;
+            color: #92400e;
+        }
+
+        .toast-info {
+            background: var(--primary-50);
+            border-left-color: var(--primary-500);
+            color: var(--primary-700);
+        }
+
+        /* Alert Styles */
+        .alert {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-4);
+            border-radius: var(--radius-lg);
+            border: 1px solid;
+            margin-bottom: var(--space-4);
+            transition: all var(--transition);
+        }
+
+        .alert-content {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .alert-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity var(--transition);
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border-color: #d97706;
+            color: #92400e;
+        }
+
+        .alert-info {
+            background: var(--primary-50);
+            border-color: var(--primary-500);
+            color: var(--primary-700);
+        }
+
+        /* Footer */
         .footer {
-            border-top: 1px solid var(--border-color);
-            background: var(--bg-primary);
+            margin-top: auto;
+            padding: var(--space-8) 0;
+            border-top: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: var(--space-4);
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color var(--transition);
+        }
+
+        .footer-link:hover {
+            color: var(--text);
+        }
+
+        /* Dark theme specific adjustments */
+        [data-theme="dark"] .toast-success {
+            background: #064e3b;
+            color: #a7f3d0;
+        }
+
+        [data-theme="dark"] .toast-error {
+            background: #7f1d1d;
+            color: #fecaca;
+        }
+
+        [data-theme="dark"] .toast-warning {
+            background: #78350f;
+            color: #fed7aa;
+        }
+
+        [data-theme="dark"] .notification-item.unread {
+            background: var(--primary-900);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .footer-content {
+                flex-direction: column;
+                gap: var(--space-4);
+                text-align: center;
+            }
+
+            .navbar-nav {
+                flex-wrap: wrap;
+                gap: var(--space-1);
+            }
+
+            .search-input {
+                width: 200px;
+            }
+
+            .notifications-menu {
+                width: 90vw;
+                right: auto;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .toast-container {
+                left: var(--space-4);
+                right: var(--space-4);
+                max-width: none;
+            }
+
+            .search-results {
+                width: 95%;
+            }
+
+            .modal-content {
+                width: 95%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .search-input {
+                width: 150px;
+            }
+
+            .quick-actions {
+                display: none;
+            }
         }
     </style>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

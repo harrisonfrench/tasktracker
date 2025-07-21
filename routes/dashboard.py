@@ -1,10 +1,12 @@
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
-from sqlalchemy import func, and_
-from datetime import datetime, timedelta
+from sqlalchemy import func, and_, desc, extract
+from datetime import datetime, timedelta, timezone
 
-from models.models import Task, Project, UserAchievement
+from models.models import Task, Project, UserAchievement, TimeLog, Notification
 from utils.database import db
+from utils.analytics import AdvancedAnalytics, ReportGenerator
+from utils.notifications import NotificationManager, SmartAlerts
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -44,12 +46,14 @@ def index():
     # Get active projects with progress
     projects = Project.query.filter_by(user_id=current_user.id, is_archived=False)\
                            .order_by(Project.updated_at.desc()).limit(6).all()
-    
-    # Get recent achievements
+     # Get recent achievements
     recent_achievements = UserAchievement.query.filter_by(user_id=current_user.id)\
                                               .order_by(UserAchievement.earned_at.desc())\
                                               .limit(3).all()
     
+    # Get recent activity
+    recent_activity = get_recent_activity()
+
     return render_template('dashboard/index.html',
                          stats=stats,
                          recent_tasks=recent_tasks,
@@ -57,6 +61,7 @@ def index():
                          overdue_tasks=overdue_tasks,
                          projects=projects,
                          recent_achievements=recent_achievements,
+                         recent_activity=recent_activity,
                          today=datetime.utcnow().date())
 
 @dashboard_bp.route('/analytics')
@@ -252,3 +257,75 @@ def get_analytics_data():
             } for achievement in recent_achievements
         ]
     }
+def get_recent_activity():
+    """Generate recent activity feed for the user"""
+    activities = []
+    
+    # Recent task completions
+    completed_tasks = Task.query.filter_by(
+        user_id=current_user.id, 
+        status='completed'
+    ).order_by(Task.completed_at.desc()).limit(10).all()
+    
+    for task in completed_tasks:
+        if task.completed_at:
+            activities.append({
+                'type': 'task_completed',
+                'icon': 'check-circle',
+                'title': f'Completed task "{task.title}"',
+                'description': f'In project {task.project.name}' if task.project else 'Personal task',
+                'timestamp': task.completed_at,
+                'color': 'success'
+            })
+    
+    # Recent task creations
+    new_tasks = Task.query.filter_by(
+        user_id=current_user.id
+    ).order_by(Task.created_at.desc()).limit(5).all()
+    
+    for task in new_tasks:
+        if task.created_at and task.status != 'completed':
+            activities.append({
+                'type': 'task_created',
+                'icon': 'plus-circle',
+                'title': f'Created task "{task.title}"',
+                'description': f'Priority: {task.priority.title()}',
+                'timestamp': task.created_at,
+                'color': 'primary'
+            })
+    
+    # Recent project creations
+    new_projects = Project.query.filter_by(
+        user_id=current_user.id,
+        is_archived=False
+    ).order_by(Project.created_at.desc()).limit(3).all()
+    
+    for project in new_projects:
+        if project.created_at:
+            activities.append({
+                'type': 'project_created',
+                'icon': 'folder-plus',
+                'title': f'Created project "{project.name}"',
+                'description': project.description[:50] + '...' if project.description and len(project.description) > 50 else project.description or 'No description',
+                'timestamp': project.created_at,
+                'color': 'info'
+            })
+    
+    # Recent achievements
+    achievements = UserAchievement.query.filter_by(
+        user_id=current_user.id
+    ).order_by(UserAchievement.earned_at.desc()).limit(5).all()
+    
+    for achievement in achievements:
+        activities.append({
+            'type': 'achievement_earned',
+            'icon': 'award',
+            'title': f'Earned achievement: {achievement.achievement_name}',
+            'description': achievement.description,
+            'timestamp': achievement.earned_at,
+            'color': 'warning'
+        })
+    
+    # Sort all activities by timestamp and return top 15
+    activities.sort(key=lambda x: x['timestamp'], reverse=True)
+    return activities[:15]

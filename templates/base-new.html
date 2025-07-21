@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block description %}Professional task management for modern teams{% endblock %}">
+    <title>{% block title %}Task Tracker Pro{% endblock %}</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Modern Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    {% if current_user.is_authenticated %}
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="{{ url_for('dashboard.index') }}" class="navbar-brand">
+                <i data-lucide="zap"></i> Task Tracker Pro
+            </a>
+            
+            <div class="navbar-nav">
+                <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="{{ url_for('tasks.list_tasks') }}" class="nav-link {% if request.endpoint and 'tasks' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="check-square"></i> Tasks
+                </a>
+                <a href="{{ url_for('projects.list_projects') }}" class="nav-link {% if request.endpoint and 'projects' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="folder"></i> Projects
+                </a>
+                <a href="{{ url_for('calendar.view') }}" class="nav-link {% if request.endpoint and 'calendar' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="calendar"></i> Calendar
+                </a>
+                
+                <!-- User Menu -->
+                <button class="btn btn-secondary btn-sm" onclick="toggleTheme()">
+                    <i data-lucide="moon" id="theme-icon"></i>
+                </button>
+                <a href="{{ url_for('auth.profile') }}" class="nav-link">
+                    <i data-lucide="user"></i> Profile
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="nav-link">
+                    <i data-lucide="log-out"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages-container mb-6">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                                <div class="alert-content">
+                                    {% if category == 'success' %}
+                                        <i data-lucide="check-circle"></i>
+                                    {% elif category == 'error' or category == 'danger' %}
+                                        <i data-lucide="alert-circle"></i>
+                                    {% elif category == 'warning' %}
+                                        <i data-lucide="alert-triangle"></i>
+                                    {% else %}
+                                        <i data-lucide="info"></i>
+                                    {% endif %}
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    {% if current_user.is_authenticated %}
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2025 Task Tracker Pro. Built with ❤️ using Flask.</p>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="#" class="footer-link">Terms</a>
+                    <a href="#" class="footer-link">Support</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    {% endif %}
+
+    <!-- Scripts -->
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Theme Toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Update icon
+            if (newTheme === 'dark') {
+                themeIcon.setAttribute('data-lucide', 'sun');
+            } else {
+                themeIcon.setAttribute('data-lucide', 'moon');
+            }
+            lucide.createIcons();
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const themeIcon = document.getElementById('theme-icon');
+            
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            if (savedTheme === 'dark' && themeIcon) {
+                themeIcon.setAttribute('data-lucide', 'sun');
+                lucide.createIcons();
+            }
+        });
+
+        // Auto-dismiss alerts
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-20px)';
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 5000);
+
+        // Smooth animations for page elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card, .task-item, .project-item');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-fade-in');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            cards.forEach(card => observer.observe(card));
+        });
+    </script>
+    
+    <style>
+        /* Additional modern styles */
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-4);
+            border-radius: var(--radius-lg);
+            border: 1px solid;
+            margin-bottom: var(--space-4);
+            transition: all var(--transition);
+        }
+
+        .alert-content {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .alert-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity var(--transition);
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border-color: #d97706;
+            color: #92400e;
+        }
+
+        .alert-info {
+            background: var(--primary-50);
+            border-color: var(--primary-500);
+            color: var(--primary-700);
+        }
+
+        .footer {
+            margin-top: auto;
+            padding: var(--space-8) 0;
+            border-top: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: var(--space-4);
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color var(--transition);
+        }
+
+        .footer-link:hover {
+            color: var(--text);
+        }
+
+        @media (max-width: 768px) {
+            .footer-content {
+                flex-direction: column;
+                gap: var(--space-4);
+                text-align: center;
+            }
+
+            .navbar-nav {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

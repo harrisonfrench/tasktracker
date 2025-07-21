@@ -1,24 +1,72 @@
-from flask_mail import Message
-from flask import render_template
+"""
+Advanced Notification System for Task Tracker Pro
+Real-time notifications, smart alerts, and communication features
+"""
 
-def init_notifications(app, mail):
-    @app.route('/health')
-    def health():
-        return 'OK', 200
+from datetime import datetime, timedelta, timezone
+from models.models import Notification, Task, Project
+from models.user import User
+from utils.database import db
+from flask import current_app
+from sqlalchemy import and_
+import json
 
-def send_task_reminder(user, task, mail):
-    msg = Message(
-        subject=f"Reminder: {task.title} due soon",
-        sender='noreply@tasktracker.com',
-        recipients=[user.email]
-    )
-    msg.html = f"""
-    <h2>Task Reminder</h2>
-    <p>Hi {user.full_name},</p>
-    <p>This is a reminder that your task "{task.title}" is due soon.</p>
-    <p>Due date: {task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'No due date'}</p>
-    <p>Priority: {task.priority.title()}</p>
-    <p>Description: {task.description}</p>
-    <p>Best regards,<br>Task Tracker Pro X Team</p>
-    """
-    mail.send(msg)
+class NotificationManager:
+    """Comprehensive notification management system"""
+    
+    @staticmethod
+    def create_notification(user_id, title, message, notification_type, action_url=None, priority='normal'):
+        """Create a new notification for a user"""
+        notification = Notification(
+            user_id=user_id,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            action_url=action_url
+        )
+        db.session.add(notification)
+        db.session.commit()
+        
+        return notification
+    
+    @staticmethod
+    def mark_as_read(notification_id, user_id):
+        """Mark a notification as read"""
+        notification = Notification.query.filter_by(
+            id=notification_id, 
+            user_id=user_id
+        ).first()
+        if notification:
+            notification.is_read = True
+            db.session.commit()
+            return True
+        return False
+    
+    @staticmethod
+    def get_unread_count(user_id):
+        """Get count of unread notifications"""
+        return Notification.query.filter_by(
+            user_id=user_id, 
+            is_read=False
+        ).count()
+    
+    @staticmethod
+    def get_recent_notifications(user_id, limit=10):
+        """Get recent notifications for a user"""
+        return Notification.query.filter_by(
+            user_id=user_id
+        ).order_by(Notification.created_at.desc()).limit(limit).all()
+
+class SmartAlerts:
+    """Intelligent alert system for proactive notifications"""
+    
+    @staticmethod
+    def send_achievement_notification(user_id, achievement_name):
+        """Send achievement unlock notification"""
+        NotificationManager.create_notification(
+            user_id=user_id,
+            title=f"Achievement Unlocked: {achievement_name}!",
+            message=f"Congratulations! You've unlocked the {achievement_name} achievement.",
+            notification_type="achievement_unlocked",
+            action_url="/dashboard"
+        )

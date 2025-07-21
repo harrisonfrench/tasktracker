@@ -155,13 +155,14 @@ class TaskComment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Foreign keys
     task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Relationships
-    user = db.relationship('User', backref='comments')
+    user = db.relationship('User', backref='task_comments')
 
 class TaskAttachment(db.Model):
     __tablename__ = 'task_attachments'
@@ -171,6 +172,7 @@ class TaskAttachment(db.Model):
     original_filename = db.Column(db.String(255), nullable=False)
     file_size = db.Column(db.Integer)
     mime_type = db.Column(db.String(100))
+    file_path = db.Column(db.String(500), nullable=False)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Foreign keys
@@ -178,7 +180,126 @@ class TaskAttachment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Relationships
-    user = db.relationship('User', backref='attachments')
+    user = db.relationship('User', backref='task_attachments')
+
+class ProjectTemplate(db.Model):
+    __tablename__ = 'project_templates'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    category = db.Column(db.String(50))  # software, marketing, design, etc.
+    is_public = db.Column(db.Boolean, default=False)
+    usage_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Template data (JSON)
+    template_data = db.Column(db.Text)  # JSON string with project structure
+    
+    # Foreign key
+    creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    creator = db.relationship('User', backref='project_templates')
+
+class TimeLog(db.Model):
+    __tablename__ = 'time_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime)
+    duration_minutes = db.Column(db.Integer)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign keys
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    task = db.relationship('Task', backref='time_logs')
+    user = db.relationship('User', backref='time_logs')
+
+class Team(db.Model):
+    __tablename__ = 'teams'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    avatar_url = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign key
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    owner = db.relationship('User', backref='owned_teams')
+
+class TeamMember(db.Model):
+    __tablename__ = 'team_members'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(20), default='member')  # owner, admin, member
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign keys
+    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    team = db.relationship('Team', backref='members')
+    user = db.relationship('User', backref='team_memberships')
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text)
+    notification_type = db.Column(db.String(50))  # task_due, achievement, mention, etc.
+    is_read = db.Column(db.Boolean, default=False)
+    action_url = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign key
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', backref='notifications')
+
+class WorkflowTemplate(db.Model):
+    __tablename__ = 'workflow_templates'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    workflow_data = db.Column(db.Text)  # JSON with automation rules
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign key
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', backref='workflow_templates')
+
+class UserPreferences(db.Model):
+    __tablename__ = 'user_preferences'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    theme = db.Column(db.String(20), default='light')  # light, dark, auto
+    timezone = db.Column(db.String(50), default='UTC')
+    language = db.Column(db.String(10), default='en')
+    email_notifications = db.Column(db.Boolean, default=True)
+    push_notifications = db.Column(db.Boolean, default=True)
+    dashboard_layout = db.Column(db.Text)  # JSON with widget preferences
+    
+    # Foreign key
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('preferences', uselist=False))
 
 class UserAchievement(db.Model):
     __tablename__ = 'user_achievements'
@@ -195,3 +316,14 @@ class UserAchievement(db.Model):
     
     # Relationships
     user = db.relationship('User', backref='achievements')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'achievement_type': self.achievement_type,
+            'achievement_name': self.achievement_name,
+            'description': self.description,
+            'points_awarded': self.points_awarded,
+            'earned_at': self.earned_at.isoformat(),
+            'user_id': self.user_id
+        }

@@ -239,94 +239,419 @@ def api_analytics_overview():
 
 @api_bp.route('/analytics/productivity', methods=['GET'])
 @login_required
-def api_analytics_productivity():
+def api_productivity_analytics():
+    """Get comprehensive productivity analytics"""
+    from utils.analytics import AdvancedAnalytics
+    
     days = request.args.get('days', 30, type=int)
-    start_date = datetime.utcnow() - timedelta(days=days)
-    
-    # Daily completion stats
-    daily_stats = db.session.query(
-        func.date(Task.completed_at).label('date'),
-        func.count(Task.id).label('completed_tasks'),
-        func.sum(Task.points_value).label('points_earned')
-    ).filter(
-        Task.user_id == current_user.id,
-        Task.status == 'completed',
-        Task.completed_at >= start_date
-    ).group_by(func.date(Task.completed_at)).all()
-    
-    productivity_data = []
-    for stat in daily_stats:
-        productivity_data.append({
-            'date': stat.date.isoformat(),
-            'completed_tasks': stat.completed_tasks,
-            'points_earned': stat.points_earned or 0
-        })
-    
-    # Weekly patterns
-    weekly_stats = db.session.query(
-        extract('dow', Task.completed_at).label('day_of_week'),
-        func.count(Task.id).label('completed_tasks')
-    ).filter(
-        Task.user_id == current_user.id,
-        Task.status == 'completed',
-        Task.completed_at >= start_date
-    ).group_by(extract('dow', Task.completed_at)).all()
-    
-    weekly_pattern = {str(int(stat.day_of_week)): stat.completed_tasks for stat in weekly_stats}
+    analytics = AdvancedAnalytics(current_user.id)
+    insights = analytics.productivity_insights(days)
     
     return jsonify({
-        'productivity_data': productivity_data,
-        'weekly_pattern': weekly_pattern
+        'status': 'success',
+        'data': insights,
+        'period_days': days
     })
 
-@api_bp.route('/user/profile', methods=['GET'])
+@api_bp.route('/analytics/time-tracking', methods=['GET'])
 @login_required
-def api_user_profile():
-    total_points = current_user.total_points or 0
-    achievements_count = UserAchievement.query.filter_by(user_id=current_user.id).count()
+def api_time_tracking_analytics():
+    """Get time tracking analytics"""
+    from utils.analytics import AdvancedAnalytics
+    
+    days = request.args.get('days', 30, type=int)
+    analytics = AdvancedAnalytics(current_user.id)
+    time_data = analytics.time_tracking_analysis(days)
     
     return jsonify({
-        'user': {
-            'id': current_user.id,
-            'username': current_user.username,
-            'email': current_user.email,
-            'total_points': total_points,
-            'achievements_count': achievements_count,
-            'created_at': current_user.created_at.isoformat(),
-            'level': (total_points // 100) + 1,
-            'points_to_next_level': 100 - (total_points % 100)
-        }
+        'status': 'success',
+        'data': time_data,
+        'period_days': days
     })
 
-@api_bp.route('/search', methods=['GET'])
+@api_bp.route('/analytics/workload-forecast', methods=['GET'])
 @login_required
-def api_search():
-    query = request.args.get('q', '').strip()
-    if not query:
-        return jsonify({'error': 'Search query is required'}), 400
+def api_workload_forecast():
+    """Get upcoming workload forecast"""
+    from utils.analytics import AdvancedAnalytics
     
-    # Search tasks
-    tasks = Task.query.filter(
-        Task.user_id == current_user.id,
-        db.or_(
-            Task.title.contains(query),
-            Task.description.contains(query)
-        )
-    ).limit(10).all()
-    
-    # Search projects
-    projects = Project.query.filter(
-        Project.user_id == current_user.id,
-        db.or_(
-            Project.name.contains(query),
-            Project.description.contains(query)
-        )
-    ).limit(5).all()
+    days = request.args.get('days', 14, type=int)
+    analytics = AdvancedAnalytics(current_user.id)
+    forecast = analytics.workload_forecast(days)
     
     return jsonify({
-        'query': query,
-        'results': {
-            'tasks': [task.to_dict() for task in tasks],
-            'projects': [project.to_dict() for project in projects]
+        'status': 'success',
+        'data': forecast,
+        'forecast_days': days
+    })
+
+# Notification API
+@api_bp.route('/notifications', methods=['GET'])
+@login_required
+def api_notifications():
+    """Get user notifications"""
+    from utils.notifications import NotificationManager
+    
+    limit = request.args.get('limit', 10, type=int)
+    notifications = NotificationManager.get_recent_notifications(current_user.id, limit)
+    unread_count = NotificationManager.get_unread_count(current_user.id)
+    
+    return jsonify({
+        'status': 'success',
+        'notifications': [
+            {
+                'id': n.id,
+                'title': n.title,
+                'message': n.message,
+                'type': n.notification_type,
+                'is_read': n.is_read,
+                'action_url': n.action_url,
+                'created_at': n.created_at.isoformat()
+            } for n in notifications
+        ],
+        'unread_count': unread_count
+    })
+
+@api_bp.route('/notifications/<int:notification_id>/read', methods=['POST'])
+@login_required
+def api_mark_notification_read(notification_id):
+    """Mark notification as read"""
+    from utils.notifications import NotificationManager
+    
+    success = NotificationManager.mark_as_read(notification_id, current_user.id)
+    
+    return jsonify({
+        'status': 'success' if success else 'error',
+        'message': 'Notification marked as read' if success else 'Notification not found'
+    })
+
+# Advanced Task Management API
+@api_bp.route('/tasks/bulk-update', methods=['POST'])
+@login_required
+def api_bulk_update_tasks():
+    """Bulk update multiple tasks"""
+    data = request.get_json()
+    task_ids = data.get('task_ids', [])
+    updates = data.get('updates', {})
+    
+    if not task_ids or not updates:
+        return jsonify({'status': 'error', 'message': 'Invalid data'}), 400
+    
+    updated_count = 0
+    for task_id in task_ids:
+        task = Task.query.filter_by(id=task_id, user_id=current_user.id).first()
+        if task:
+            for field, value in updates.items():
+                if hasattr(task, field):
+                    setattr(task, field, value)
+            updated_count += 1
+    
+    db.session.commit()
+    
+    return jsonify({
+        'status': 'success',
+        'message': f'Updated {updated_count} tasks',
+        'updated_count': updated_count
+    })
+
+@api_bp.route('/tasks/search', methods=['GET'])
+@login_required
+def api_search_tasks():
+    """Advanced task search with filters"""
+    query_text = request.args.get('q', '')
+    project_ids = request.args.getlist('project_id', type=int)
+    priorities = request.args.getlist('priority')
+    statuses = request.args.getlist('status')
+    due_date_start = request.args.get('due_date_start')
+    due_date_end = request.args.get('due_date_end')
+    
+    query = Task.query.filter_by(user_id=current_user.id)
+    
+    # Text search
+    if query_text:
+        query = query.filter(
+            db.or_(
+                Task.title.contains(query_text),
+                Task.description.contains(query_text)
+            )
+        )
+    
+    # Filters
+    if project_ids:
+        query = query.filter(Task.project_id.in_(project_ids))
+    if priorities:
+        query = query.filter(Task.priority.in_(priorities))
+    if statuses:
+        query = query.filter(Task.status.in_(statuses))
+    
+    # Date range
+    if due_date_start:
+        start_date = datetime.fromisoformat(due_date_start)
+        query = query.filter(Task.due_date >= start_date)
+    if due_date_end:
+        end_date = datetime.fromisoformat(due_date_end)
+        query = query.filter(Task.due_date <= end_date)
+    
+    tasks = query.order_by(Task.due_date.asc()).limit(50).all()
+    
+    return jsonify({
+        'status': 'success',
+        'tasks': [task.to_dict() for task in tasks],
+        'count': len(tasks)
+    })
+
+# Project Templates API
+@api_bp.route('/project-templates', methods=['GET'])
+@login_required
+def api_project_templates():
+    """Get available project templates"""
+    from models.models import ProjectTemplate
+    
+    category = request.args.get('category')
+    
+    query = ProjectTemplate.query.filter(
+        db.or_(
+            ProjectTemplate.creator_id == current_user.id,
+            ProjectTemplate.is_public == True
+        )
+    )
+    
+    if category:
+        query = query.filter_by(category=category)
+    
+    templates = query.order_by(ProjectTemplate.usage_count.desc()).all()
+    
+    return jsonify({
+        'status': 'success',
+        'templates': [
+            {
+                'id': t.id,
+                'name': t.name,
+                'description': t.description,
+                'category': t.category,
+                'usage_count': t.usage_count,
+                'is_public': t.is_public,
+                'creator': t.creator.username if t.creator else None
+            } for t in templates
+        ]
+    })
+
+@api_bp.route('/project-templates/<int:template_id>/use', methods=['POST'])
+@login_required
+def api_use_project_template(template_id):
+    """Create project from template"""
+    from models.models import ProjectTemplate
+    
+    template = ProjectTemplate.query.get_or_404(template_id)
+    data = request.get_json()
+    project_name = data.get('name', template.name)
+    
+    # Create project from template
+    project = Project(
+        name=project_name,
+        description=template.description,
+        user_id=current_user.id,
+        color=data.get('color', '#3b82f6')
+    )
+    db.session.add(project)
+    db.session.flush()
+    
+    # Create tasks from template
+    if template.template_data:
+        template_tasks = json.loads(template.template_data)
+        for task_data in template_tasks.get('tasks', []):
+            task = Task(
+                title=task_data['title'],
+                description=task_data.get('description', ''),
+                priority=task_data.get('priority', 'medium'),
+                project_id=project.id,
+                user_id=current_user.id,
+                points_value=task_data.get('points_value', 10)
+            )
+            db.session.add(task)
+    
+    # Increment usage count
+    template.usage_count += 1
+    db.session.commit()
+    
+    return jsonify({
+        'status': 'success',
+        'project': project.to_dict(),
+        'message': f'Project "{project_name}" created from template'
+    })
+
+# Time Tracking API
+@api_bp.route('/time-tracking/start', methods=['POST'])
+@login_required
+def api_start_time_tracking():
+    """Start time tracking for a task"""
+    from models.models import TimeLog
+    
+    data = request.get_json()
+    task_id = data.get('task_id')
+    description = data.get('description', '')
+    
+    task = Task.query.filter_by(id=task_id, user_id=current_user.id).first()
+    if not task:
+        return jsonify({'status': 'error', 'message': 'Task not found'}), 404
+    
+    # Stop any active time tracking
+    active_logs = TimeLog.query.filter_by(
+        user_id=current_user.id,
+        is_active=True
+    ).all()
+    
+    for log in active_logs:
+        log.end_time = datetime.utcnow()
+        log.duration_minutes = int((log.end_time - log.start_time).total_seconds() / 60)
+        log.is_active = False
+    
+    # Start new time tracking
+    time_log = TimeLog(
+        task_id=task_id,
+        user_id=current_user.id,
+        start_time=datetime.utcnow(),
+        description=description,
+        is_active=True
+    )
+    db.session.add(time_log)
+    db.session.commit()
+    
+    return jsonify({
+        'status': 'success',
+        'time_log_id': time_log.id,
+        'task_title': task.title,
+        'started_at': time_log.start_time.isoformat()
+    })
+
+@api_bp.route('/time-tracking/stop', methods=['POST'])
+@login_required
+def api_stop_time_tracking():
+    """Stop active time tracking"""
+    from models.models import TimeLog
+    
+    data = request.get_json()
+    time_log_id = data.get('time_log_id')
+    
+    if time_log_id:
+        time_log = TimeLog.query.filter_by(
+            id=time_log_id,
+            user_id=current_user.id,
+            is_active=True
+        ).first()
+    else:
+        time_log = TimeLog.query.filter_by(
+            user_id=current_user.id,
+            is_active=True
+        ).first()
+    
+    if not time_log:
+        return jsonify({'status': 'error', 'message': 'No active time tracking found'}), 404
+    
+    time_log.end_time = datetime.utcnow()
+    time_log.duration_minutes = int((time_log.end_time - time_log.start_time).total_seconds() / 60)
+    time_log.is_active = False
+    
+    db.session.commit()
+    
+    return jsonify({
+        'status': 'success',
+        'duration_minutes': time_log.duration_minutes,
+        'duration_hours': round(time_log.duration_minutes / 60, 2),
+        'task_title': time_log.task.title
+    })
+
+# Export/Import API
+@api_bp.route('/export/tasks', methods=['GET'])
+@login_required
+def api_export_tasks():
+    """Export tasks to JSON format"""
+    format_type = request.args.get('format', 'json')
+    project_id = request.args.get('project_id', type=int)
+    
+    query = Task.query.filter_by(user_id=current_user.id)
+    if project_id:
+        query = query.filter_by(project_id=project_id)
+    
+    tasks = query.all()
+    
+    export_data = {
+        'export_date': datetime.utcnow().isoformat(),
+        'user': current_user.username,
+        'tasks': [
+            {
+                'title': task.title,
+                'description': task.description,
+                'priority': task.priority,
+                'status': task.status,
+                'project_name': task.project.name,
+                'due_date': task.due_date.isoformat() if task.due_date else None,
+                'created_at': task.created_at.isoformat(),
+                'completed_at': task.completed_at.isoformat() if task.completed_at else None
+            } for task in tasks
+        ]
+    }
+    
+    return jsonify({
+        'status': 'success',
+        'data': export_data,
+        'task_count': len(tasks)
+    })
+
+# Dashboard Widgets API
+@api_bp.route('/dashboard/widgets', methods=['GET'])
+@login_required
+def api_dashboard_widgets():
+    """Get dashboard widget data"""
+    
+    # Quick stats
+    total_tasks = Task.query.filter_by(user_id=current_user.id).count()
+    completed_tasks = Task.query.filter_by(user_id=current_user.id, status='completed').count()
+    active_projects = Project.query.filter_by(user_id=current_user.id, is_archived=False).count()
+    
+    # Recent activity
+    recent_tasks = Task.query.filter_by(user_id=current_user.id)\
+                            .order_by(Task.updated_at.desc())\
+                            .limit(5).all()
+    
+    # Upcoming deadlines
+    upcoming_tasks = Task.query.filter(
+        db.and_(
+            Task.user_id == current_user.id,
+            Task.status == 'active',
+            Task.due_date.isnot(None),
+            Task.due_date >= datetime.utcnow(),
+            Task.due_date <= datetime.utcnow() + timedelta(days=7)
+        )
+    ).order_by(Task.due_date.asc()).limit(5).all()
+    
+    return jsonify({
+        'status': 'success',
+        'widgets': {
+            'quick_stats': {
+                'total_tasks': total_tasks,
+                'completed_tasks': completed_tasks,
+                'completion_rate': round((completed_tasks / total_tasks * 100) if total_tasks > 0 else 0, 1),
+                'active_projects': active_projects
+            },
+            'recent_activity': [
+                {
+                    'id': task.id,
+                    'title': task.title,
+                    'status': task.status,
+                    'updated_at': task.updated_at.isoformat(),
+                    'project_name': task.project.name
+                } for task in recent_tasks
+            ],
+            'upcoming_deadlines': [
+                {
+                    'id': task.id,
+                    'title': task.title,
+                    'due_date': task.due_date.isoformat(),
+                    'priority': task.priority,
+                    'project_name': task.project.name,
+                    'days_until_due': (task.due_date - datetime.utcnow()).days
+                } for task in upcoming_tasks
+            ]
         }
     })

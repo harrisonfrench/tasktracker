@@ -1,0 +1,557 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Task Tracker Pro{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <div class="dashboard-welcome">
+        <h1>Welcome back, {{ current_user.first_name }}! 👋</h1>
+        <p>Let's make today productive. You're doing great!</p>
+    </div>
+    <div class="dashboard-level">
+        <div class="level-badge">
+            <i data-lucide="zap"></i>
+            <span>Level {{ current_user.level or 1 }}</span>
+        </div>
+        <div class="level-points">{{ current_user.total_points or 0 }} points</div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <i data-lucide="check-square"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number">{{ stats.total_tasks or 0 }}</div>
+            <div class="stat-label">Total Tasks</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i data-lucide="check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number">{{ stats.completed_tasks or 0 }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i data-lucide="clock"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number">{{ stats.pending_tasks or 0 }}</div>
+            <div class="stat-label">In Progress</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon error">
+            <i data-lucide="alert-circle"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number">{{ stats.overdue_tasks or 0 }}</div>
+            <div class="stat-label">Overdue</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard Grid -->
+<div class="grid grid-cols-3 gap-6">
+    <!-- Recent Tasks -->
+    <div class="card col-span-2">
+        <div class="card-header">
+            <h3 class="card-title">Recent Tasks</h3>
+            <a href="{{ url_for('tasks.create_task') }}" class="btn btn-primary btn-sm">
+                <i data-lucide="plus"></i> New Task
+            </a>
+        </div>
+        <div class="card-body">
+            {% if recent_tasks %}
+                <div class="task-list">
+                    {% for task in recent_tasks %}
+                    <div class="task-item priority-{{ task.priority }}">
+                        <div class="task-content">
+                            <div class="task-header">
+                                <h4 class="task-title">{{ task.title }}</h4>
+                                <div class="task-meta">
+                                    {% if task.project %}
+                                        <span class="badge badge-primary">{{ task.project.name }}</span>
+                                    {% endif %}
+                                    <span class="badge badge-{{ 'success' if task.status == 'completed' else 'warning' if task.status == 'in_progress' else 'secondary' }}">
+                                        {{ task.status.replace('_', ' ').title() }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% if task.description %}
+                                <p class="task-description">{{ task.description[:100] }}...</p>
+                            {% endif %}
+                            <div class="task-footer">
+                                {% if task.due_date %}
+                                    <span class="task-due">
+                                        <i data-lucide="calendar"></i>
+                                        Due: {{ task.due_date.strftime('%b %d, %Y') }}
+                                    </span>
+                                {% endif %}
+                                <div class="task-actions">
+                                    <a href="{{ url_for('tasks.view_task', id=task.id) }}" class="btn btn-secondary btn-sm">
+                                        <i data-lucide="eye"></i> View
+                                    </a>
+                                    <a href="{{ url_for('tasks.edit_task', id=task.id) }}" class="btn btn-secondary btn-sm">
+                                        <i data-lucide="edit"></i> Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('tasks.list_tasks') }}" class="btn btn-secondary">
+                        View All Tasks <i data-lucide="arrow-right"></i>
+                    </a>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i data-lucide="inbox" class="empty-icon"></i>
+                    <h4>No tasks yet</h4>
+                    <p>Create your first task to get started!</p>
+                    <a href="{{ url_for('tasks.create_task') }}" class="btn btn-primary">
+                        <i data-lucide="plus"></i> Create Task
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Actions & Progress -->
+    <div class="dashboard-sidebar">
+        <!-- Quick Actions -->
+        <div class="card mb-6">
+            <div class="card-header">
+                <h3 class="card-title">Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <div class="quick-actions">
+                    <a href="{{ url_for('tasks.create_task') }}" class="quick-action">
+                        <i data-lucide="plus-circle"></i>
+                        <span>New Task</span>
+                    </a>
+                    <a href="{{ url_for('projects.create_project') }}" class="quick-action">
+                        <i data-lucide="folder-plus"></i>
+                        <span>New Project</span>
+                    </a>
+                    <a href="{{ url_for('calendar.view') }}" class="quick-action">
+                        <i data-lucide="calendar"></i>
+                        <span>Calendar</span>
+                    </a>
+                    <a href="{{ url_for('auth.profile') }}" class="quick-action">
+                        <i data-lucide="user"></i>
+                        <span>Profile</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Overview -->
+        <div class="card mb-6">
+            <div class="card-header">
+                <h3 class="card-title">Progress Overview</h3>
+            </div>
+            <div class="card-body">
+                {% if stats.total_tasks > 0 %}
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span>Task Completion</span>
+                            <span>{{ "%.1f"|format((stats.completed_tasks / stats.total_tasks * 100) if stats.total_tasks > 0 else 0) }}%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width: {{ (stats.completed_tasks / stats.total_tasks * 100) if stats.total_tasks > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {% if projects %}
+                    {% for project in projects[:3] %}
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>{{ project.name }}</span>
+                                <span>{{ "%.1f"|format((project.progress or 0)) }}%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: {{ project.progress or 0 }}%"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Recent Activity</h3>
+            </div>
+            <div class="card-body">
+                <div class="activity-feed">
+                    {% for activity in recent_activity[:5] %}
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i data-lucide="{{ 'check-circle' if activity.type == 'task_completed' else 'plus-circle' if activity.type == 'task_created' else 'edit' }}"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p>{{ activity.description }}</p>
+                                <span class="activity-time">{{ activity.created_at.strftime('%b %d, %H:%M') if activity.created_at else 'Just now' }}</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="empty-state-mini">
+                            <i data-lucide="activity"></i>
+                            <p>No recent activity</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Projects Overview -->
+{% if projects %}
+<div class="card mt-8">
+    <div class="card-header">
+        <h3 class="card-title">Your Projects</h3>
+        <a href="{{ url_for('projects.create_project') }}" class="btn btn-primary btn-sm">
+            <i data-lucide="plus"></i> New Project
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-cols-3">
+            {% for project in projects[:6] %}
+                <div class="project-item">
+                    <div class="project-header">
+                        <h4 class="project-title">{{ project.name }}</h4>
+                        <span class="project-status badge badge-{{ 'success' if project.status == 'completed' else 'warning' if project.status == 'in_progress' else 'secondary' }}">
+                            {{ project.status.replace('_', ' ').title() }}
+                        </span>
+                    </div>
+                    {% if project.description %}
+                        <p class="project-description">{{ project.description[:80] }}...</p>
+                    {% endif %}
+                    <div class="project-progress">
+                        <div class="progress-label">
+                            <span>Progress</span>
+                            <span>{{ "%.0f"|format(project.progress or 0) }}%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width: {{ project.progress or 0 }}%"></div>
+                        </div>
+                    </div>
+                    <div class="project-footer">
+                        <div class="project-meta">
+                            <span class="project-tasks">
+                                <i data-lucide="check-square"></i>
+                                {{ project.task_count or 0 }} tasks
+                            </span>
+                        </div>
+                        <div class="project-actions">
+                            <a href="{{ url_for('projects.view_project', id=project.id) }}" class="btn btn-secondary btn-sm">
+                                <i data-lucide="eye"></i> View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% if projects|length > 6 %}
+            <div class="text-center mt-6">
+                <a href="{{ url_for('projects.list_projects') }}" class="btn btn-secondary">
+                    View All Projects <i data-lucide="arrow-right"></i>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+    /* Dashboard specific styles */
+    .dashboard-header {
+        background: var(--gradient-primary);
+        color: white;
+        padding: var(--space-8);
+        border-radius: var(--radius-xl);
+        margin-bottom: var(--space-8);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dashboard-welcome h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: var(--space-2);
+        color: white;
+    }
+
+    .dashboard-welcome p {
+        font-size: 1.125rem;
+        opacity: 0.9;
+        margin: 0;
+        color: white;
+    }
+
+    .level-badge {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        background: rgba(255, 255, 255, 0.2);
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        margin-bottom: var(--space-2);
+    }
+
+    .level-points {
+        text-align: right;
+        opacity: 0.8;
+        font-size: 0.875rem;
+    }
+
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-6);
+        margin-bottom: var(--space-8);
+    }
+
+    .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        transition: all var(--transition);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon.primary {
+        background: var(--primary-100);
+        color: var(--primary-600);
+    }
+
+    .stat-icon.success {
+        background: #dcfce7;
+        color: var(--success-500);
+    }
+
+    .stat-icon.warning {
+        background: #fef3c7;
+        color: var(--warning-500);
+    }
+
+    .stat-icon.error {
+        background: #fee2e2;
+        color: var(--error-500);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1;
+        margin-bottom: var(--space-1);
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .dashboard-sidebar .card {
+        height: fit-content;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-3);
+    }
+
+    .quick-action {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-4);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        color: var(--text-secondary);
+        transition: all var(--transition);
+    }
+
+    .quick-action:hover {
+        background: var(--surface-2);
+        border-color: var(--primary-300);
+        color: var(--primary-600);
+        transform: translateY(-2px);
+    }
+
+    .progress-item {
+        margin-bottom: var(--space-4);
+    }
+
+    .progress-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: var(--space-2);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .activity-feed {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .activity-item {
+        display: flex;
+        gap: var(--space-3);
+        padding: var(--space-3) 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: var(--radius-md);
+        background: var(--surface-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .activity-content p {
+        margin: 0 0 var(--space-1);
+        font-size: 0.875rem;
+        color: var(--text);
+    }
+
+    .activity-time {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--space-8);
+    }
+
+    .empty-icon {
+        width: 4rem;
+        height: 4rem;
+        color: var(--text-muted);
+        margin-bottom: var(--space-4);
+    }
+
+    .empty-state-mini {
+        text-align: center;
+        padding: var(--space-4);
+        color: var(--text-muted);
+    }
+
+    .col-span-2 {
+        grid-column: span 2;
+    }
+
+    @media (max-width: 1024px) {
+        .grid-cols-3 {
+            grid-template-columns: 1fr;
+        }
+        
+        .col-span-2 {
+            grid-column: span 1;
+        }
+        
+        .dashboard-header {
+            flex-direction: column;
+            text-align: center;
+            gap: var(--space-4);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add smooth animations
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate stat numbers
+        const statNumbers = document.querySelectorAll('.stat-number');
+        statNumbers.forEach(stat => {
+            const finalValue = parseInt(stat.textContent);
+            let currentValue = 0;
+            const increment = finalValue / 30;
+            
+            const timer = setInterval(() => {
+                currentValue += increment;
+                if (currentValue >= finalValue) {
+                    stat.textContent = finalValue;
+                    clearInterval(timer);
+                } else {
+                    stat.textContent = Math.floor(currentValue);
+                }
+            }, 50);
+        });
+        
+        // Initialize Lucide icons
+        lucide.createIcons();
+    });
+</script>
+{% endblock %}

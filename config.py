@@ -41,6 +41,3 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    
-    # Redis for real-time features (optional)
-    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:6379'
